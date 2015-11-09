@@ -1,0 +1,245 @@
+<html>
+<head>
+  <meta charset=utf-8 />
+  <title>Southern Province of Zambia</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <!-- Load Leaflet from CDN-->
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script> 
+ 
+ <!-- Load esri Leaflet from CDN-->
+<script src="http://cdn-geoweb.s3.amazonaws.com/esri-leaflet/0.0.1-beta.5/esri-leaflet.js"></script>
+<!-- Load GeoJson files, activeCarRD: four wheel car GPS paths, activeRD:motorcycle GPS paths, allRD: all roads including car + motorcyle + others from Zambia Provincial Center for Geographic Information Services-->
+ 
+<script src="activeCarRD.js"></script>
+<script src="activeRD.js"></script>
+<script src="allRD.js"></script>
+<script src="HF_noGPS.js"></script>
+<script src="HFwGPS.js"></script>
+  
+<style>
+#header {
+    background-color:  #999999;  
+	font:  fantasy; 
+    color:  #FFFFFF;
+       
+}
+h1 {  font-size:  26px;  font:  Calibri;  padding-left:5px;}  
+
+
+#container{  background-color:  #FFFFFF}
+#map { height: 95%; min-height: 95%;  left:20px;  width: 95%;}
+
+
+
+#box { position: absolute;  top: 20px; left: 10px; 
+    background-color: #CCCCCC;  padding: 10px; z-index: 1000; opacity: 0.8}
+
+#footer {
+    background-color: #999999;
+    color:  #999999;
+    clear:both;
+    text-align:center;
+    padding:5px; 
+	margin-bottom: 15px;
+}
+ 
+</style>
+</head>
+<body>
+<div id="header">
+<h1>Southern Province of Zambia</h1></div>
+<div id="container">
+<div id="map">
+
+<div id="box">
+<input id="hf1" type="checkbox" checked onClick="noshowHF1()">Health Facilities validated in 2013</input><br>
+<input id="hfnoGPS" type="checkbox" unchecked onClick="showHF2()">Health Facilities validated in 2006</input><br>
+<input id="carRD" type="checkbox" unchecked onClick="showCarRD()">Four Wheel Vehicle GPS Roads</input><br>
+<input id="mcRD" type="checkbox" unchecked onClick="showMCRD()">Motorcycle GPS Roads</input><br>
+<input id="allRD" type="checkbox" unchecked onClick="showallRD()">All Roads</input><br><br>
+<input type="button" onClick="hereIam()" value="Show my location" class="button" style="background-color: #FF9933; border:thick; width:150px; height: 25px;  outline-style:ridge;  outline-color:#996633;"/><br><br>
+<input type="button" onClick="startpoint()" value="BACK" /><br>
+</div>
+
+
+</div>
+<script>
+var map;
+
+map=document.getElementById("map");
+map = L.map('map',{zoomControl:false}).setView([-16.6469, 26.66389],8);
+
+new L.Control.Zoom({ position: 'topright' }).addTo(map);
+var layer = L.esri.basemapLayer('Imagery').addTo(map);
+L.esri.basemapLayer('ImageryLabels').addTo(map);
+ 
+var imagery=L.esri.basemapLayer('Imagery');
+var streets=L.esri.basemapLayer('Streets');
+
+/*in case including openstreetmap as a basemap
+var openstreetmap=L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+});
+*/
+var baseMaps={
+"Streets": streets,
+"Imagery": imagery,
+//"OpenStreetMap": openstreetmap
+};
+
+L.control.layers(baseMaps).addTo(map);
+
+//customize icon for health facility validated in 2013
+var hfIcon=new L.icon({
+	iconUrl: 'hf_1.png',
+	iconSize: [13,13]
+	});
+
+var geojsonMarkerOptions={
+    icon: hfIcon
+	};
+
+//load health facilities from GeoJson file and add to map
+var hf1=L.geoJson(hf_with, {onEachFeature: onEachFeature,
+	pointToLayer: function (feature, latlng){
+	return L.marker(latlng, geojsonMarkerOptions);
+	}
+	}).addTo(map);
+
+//when check box is unchecked, healthe facilities in 2013 is not shown	
+function noshowHF1(){
+var x=document.getElementById("hf1").checked;
+if (x==false)
+{
+
+map.removeLayer(hf1);
+}
+else
+{map.addLayer(hf1);}
+}
+
+
+//customize icon for healthe facility validated in 2006
+var hf2Icon=new L.icon({
+	iconUrl: 'hf2.png',
+	iconSize: [12,12]
+	});
+
+var geojsonMarkerOptions2={
+    icon: hf2Icon
+	};
+	
+//load health facilities from GeoJson file
+
+var hf2=L.geoJson(hf_no, {onEachFeature: onEachFeature,
+	pointToLayer: function (feature, latlng){
+	return L.marker(latlng, geojsonMarkerOptions2);
+	}});
+
+//function for showing health facilities in 2006 when check box is chacked
+function showHF2(){
+var x=document.getElementById("hfnoGPS").checked;
+	if (x==true)
+	{
+		hf2.addTo(map);
+	}
+	if (x==false)
+		{map.removeLayer(hf2);}
+	}
+//function for showing 4 wheel car paths when check box is chacked
+function showCarRD(){
+var x=document.getElementById("carRD").checked;
+	if (x==true)
+	{
+		myRD.addTo(map);
+	}
+	if (x==false)
+		{map.removeLayer(myRD);}
+	}
+//customize line style for 4 wheel car paths
+var myStyle = {
+    "color": "#ff7800",
+    "weight": 2,
+   "opacity": 0.65
+};
+
+//load 4 wheel car paths from GeoJson file
+var myRD=L.geoJson(activeCarRD, {
+    style: myStyle
+});
+
+
+
+/*showing motorcycle GPS paths when check box is checked. btw MC stands for motorcycle
+*/
+function showMCRD(){
+var x=document.getElementById("mcRD").checked;
+	if (x==true)
+	{
+		mcRD.addTo(map);
+	}
+	if (x==false)
+	{map.removeLayer(mcRD);}
+	}
+//customize line style for motorcycle GPS pathes	
+var mcStyle = {
+    "color": "yellow",
+    "weight": 2,
+    "opacity": 0.65
+};
+
+var mcRD=L.geoJson(activeRD, {
+    style: mcStyle
+});
+
+//showing all roads when check box is checked. 
+
+function showallRD(){
+var x=document.getElementById("allRD").checked;
+if (x==true)
+	{
+		allRD.addTo(map);
+	}
+if (x==false)
+	{map.removeLayer(allRD);}
+	}
+
+//customize line style for all roads
+var myStyle2 = {
+    "color": "brown",
+    "weight": 2,
+    "opacity": 0.65
+};
+var allRD=L.geoJson(allRD, {
+    style: myStyle2
+});
+
+//go back to initial view
+function startpoint(){
+	map.setView([-16.50533, 26.85631],8);
+}
+
+//show user's location
+function hereIam(){
+	map.locate({setView: true, maxZoom:15});
+	map.on('locationfound', onLocationFound);
+
+function onLocationFound(e) {
+    // create a marker at the users "latlng" and add it to the map
+    L.marker(e.latlng).addTo(map);
+}
+}
+
+//when each health facility is clicked, health facility name is pop up  
+function onEachFeature(feature, layer){
+if (feature.properties.HealthFaci){
+		layer.bindPopup(feature.properties.HealthFaci);
+	}
+else {alert ("no data");}
+}
+
+</script>
+
+</body>
+</html>
